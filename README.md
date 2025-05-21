@@ -1,68 +1,74 @@
-# sellflow_project
 
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# SellFlow Project
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+SellFlow는 쇼핑몰(특히 Cafe24)과 연동하여 상품 정보를 수집하고, 사용자별로 데이터베이스를 동적으로 구성하는 Laravel 기반의 통합 관리 시스템입니다.
 
-## About Laravel
+---
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## 📁 프로젝트 구조 요약
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+```
+sellflow_project-master/
+├── app/                  # 컨트롤러, 서비스, 모델 등 핵심 비즈니스 로직
+├── bootstrap/            # Laravel 부트스트랩 관련 설정
+├── config/               # 설정 파일들 (database.php 등)
+├── database/             # 마이그레이션 및 시더
+├── public/               # 웹 루트, index.php 포함
+├── resources/
+│   └── views/            # Blade 템플릿 (연동 UI)
+├── routes/
+│   └── web.php           # 라우터 설정
+├── storage/              # 로그, 캐시, 세션 등
+├── tests/                # 테스트 코드
+├── .env.example          # 환경변수 예시
+├── vite.config.js        # Vite 프론트엔드 번들 설정
+└── composer.json         # 의존성 관리
+```
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+---
 
-## Learning Laravel
+## ✅ 현재까지 구현된 핵심 기능
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+### 1. OAuth 2.0 인증 (Cafe24 + PKCE 지원)
+- Cafe24 쇼핑몰 연동을 위한 Authorization Code Grant + PKCE 흐름 구현
+- Access Token / Refresh Token 발급 및 저장
+- 메인 DB(`oauth_integrations`) + 유저 DB(`shopping_mall_integrations`) 이중 저장
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+### 2. 토큰 자동 갱신
+- `expires_at` 기준 10분 이내면 자동으로 Refresh 처리
+- 실패 시 UI 알림 및 로그 기록
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+### 3. 사용자별 동적 데이터베이스
+- 로그인 사용자 ID 기준으로 `sellflow_global_{id}` DB에 연결
+- 각 사용자별 쇼핑몰 연동 정보를 해당 DB에 별도로 저장
 
-## Laravel Sponsors
+### 4. 쇼핑몰 연동 관리 UI
+- 연동 목록 출력 (integration.blade.php)
+- 연동 추가 / 수정 / 삭제
+- Access Token 유효성 검사 및 테스트 버튼 제공
+- Refresh Token 남은 시간 표시
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+---
 
-### Premium Partners
+## 📌 향후 개발 예정 기능
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+- 쇼핑몰 상품 수집 API 연동 (Cafe24)
+- 주문, 반품, 교환 이벤트 웹훅 처리
+- 알림 시스템 (SMS, FCM, Email)
+- 스마트스토어, 쿠팡 등 타 쇼핑몰 플랫폼 추가 연동
+- Stripe 기반 요금제 관리 및 API 호출 제한 설정
 
-## Contributing
+---
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+## ⚙️ 사용 기술 스택
 
-## Code of Conduct
+- Laravel 11.x
+- MySQL 8.x
+- PHP 8.4
+- Redis 5.x
+- Tailwind CSS + Vite
+- GitHub + Composer
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+---
 
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
-
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+> 본 프로젝트는 멀티 테넌시 구조를 기반으로 쇼핑몰 운영 데이터를 효율적으로 수집/관리하기 위해 설계되었습니다.
