@@ -3,6 +3,8 @@
 /public/build
 /public/hot
 /public/storage
+/public_html/storage
+/public_html/hot
 /storage/*.key
 /storage/pail
 /vendor
@@ -21,3 +23,6 @@ yarn-error.log
 /.nova
 /.vscode
 /.zed
+/.vagrant
+bootstrap/compiled.php
+app/storage/
