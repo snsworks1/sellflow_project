@@ -1,0 +1,12 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # 정적 파일 (CSS, JS 등)은 직접 접근 가능하도록 설정
+    RewriteCond %{REQUEST_URI} ^/build/assets/.*$ [NC]
+    RewriteRule .* - [L]
+
+    # Laravel 기본 리디렉션
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^ index.php [L]
+</IfModule>

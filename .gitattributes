@@ -1,0 +1,30 @@
+# 모든 텍스트 파일은 자동 줄바꿈 관리
+* text=auto
+
+# 소스코드 및 텍스트 파일은 LF 강제 적용
+*.php text eol=lf
+*.js text eol=lf
+*.ts text eol=lf
+*.css text eol=lf
+*.scss text eol=lf
+*.html text eol=lf
+*.blade.php text eol=lf
+*.vue text eol=lf
+*.md text eol=lf
+*.sh text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.json text eol=lf
+*.txt text eol=lf
+*.env text eol=lf
+
+# Windows용 실행 파일은 줄바꿈 관리 제외
+*.exe binary
+*.dll binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
