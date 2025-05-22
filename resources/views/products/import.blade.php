@@ -20,6 +20,13 @@
   max-height: 300px;
 }
 
+.btn-current-page {
+  background-color: #1D4ED8 !important;
+  color: #fff !important;
+  font-weight: bold !important;
+  border-color: #1D4ED8 !important;
+}
+
 </style>
 
 <div class="container mx-auto p-4">
@@ -27,7 +34,7 @@
 
     <!-- 수집 설정 폼 (간소화) -->
     <div class="bg-white p-4 shadow-md rounded-md mb-4">
-        <form id="importForm" method="POST" action="/products/import">
+        <form id="importForm">
             @csrf
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -92,6 +99,8 @@
                     </th>
                         <th class="image-column">이미지</th>
                         <th class="p-2 border">상품명</th>
+                        <th class="p-2 border">옵션</th> <!-- ✅ 옵션 추가 -->
+
                         <th class="p-2 border">상품코드</th>
                         <th class="p-2 border">가격</th>
                         <th class="p-2 border">상태</th>
@@ -104,11 +113,9 @@
         </div>
 
         <!-- 페이지네이션 -->
-        <div class="mt-4 flex justify-center space-x-2">
-            <button id="prevPage" class="px-3 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">이전</button>
-            <span id="currentPage" class="px-3 py-1">1</span>
-            <button id="nextPage" class="px-3 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">다음</button>
-        </div>
+        
+        <div id="pagination" class="mt-4 flex justify-center space-x-2"></div>
+
     </div>
 </div>
 
@@ -117,14 +124,126 @@
   <img id="preview-img" src="" style="max-width:300px; max-height:300px;">
 </div>
 
+
+<!-- 수집 결과 모달 -->
+<div id="statusModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+  <div class="bg-white p-6 rounded-lg shadow-lg w-80 text-center">
+    <h2 id="modalMessage" class="text-lg font-semibold text-gray-800 mb-4">처리 중...</h2>
+    <button onclick="closeModal()" class="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+      확인
+    </button>
+  </div>
+</div>
+
 <script>
 let products = [];
 let currentPage = 1;
 const itemsPerPage = 30;
 
-document.addEventListener('DOMContentLoaded', () => {
-    fetchProducts();
-});
+
+
+
+
+function renderPagination() {
+    const pagination = document.getElementById('pagination');
+    pagination.innerHTML = '';
+
+    const totalPages = Math.ceil(products.length / itemsPerPage);
+    const maxVisiblePages = 5; // 중앙에 보여줄 최대 페이지 수
+    const half = Math.floor(maxVisiblePages / 2);
+
+    let startPage = Math.max(1, currentPage - half);
+    let endPage = Math.min(totalPages, currentPage + half);
+
+    
+
+    if (currentPage <= half) {
+        endPage = Math.min(totalPages, maxVisiblePages);
+    }
+
+    if (currentPage + half > totalPages) {
+        startPage = Math.max(1, totalPages - maxVisiblePages + 1);
+    }
+
+    // ◀ 이전 버튼
+    if (currentPage > 1) {
+        const prev = document.createElement('button');
+        prev.innerHTML = '◀';
+        prev.className = baseBtnClass;
+        prev.onclick = () => {
+            currentPage--;
+            renderTable();
+        };
+        pagination.appendChild(prev);
+    }
+
+    // ... 생략 왼쪽
+    if (startPage > 1) {
+        const first = document.createElement('button');
+        first.innerText = '1';
+        first.className = baseBtnClass;
+        first.onclick = () => {
+            currentPage = 1;
+            renderTable();
+        };
+        pagination.appendChild(first);
+
+        if (startPage > 2) {
+            const dots = document.createElement('span');
+            dots.innerText = '...';
+            dots.className = 'px-2';
+            pagination.appendChild(dots);
+        }
+    }
+
+    // 숫자 페이지 버튼
+    for (let i = startPage; i <= endPage; i++) {
+        const btn = document.createElement('button');
+        btn.innerText = i;
+        btn.className = baseBtnClass + (i === currentPage ? ' btn-current-page' : '');
+        btn.onclick = () => {
+            currentPage = i;
+            renderTable();
+        };
+        pagination.appendChild(btn);
+    }
+
+    // ... 생략 오른쪽
+    if (endPage < totalPages) {
+        if (endPage < totalPages - 1) {
+            const dots = document.createElement('span');
+            dots.innerText = '...';
+            dots.className = 'px-2';
+            pagination.appendChild(dots);
+        }
+
+        const last = document.createElement('button');
+        last.innerText = totalPages;
+        last.className = baseBtnClass;
+        last.onclick = () => {
+            currentPage = totalPages;
+            renderTable();
+        };
+        pagination.appendChild(last);
+    }
+
+    // ▶ 다음 버튼
+    if (currentPage < totalPages) {
+        const next = document.createElement('button');
+        next.innerHTML = '▶';
+        next.className = baseBtnClass;
+        next.onclick = () => {
+            currentPage++;
+            renderTable();
+        };
+        pagination.appendChild(next);
+    }
+}
+
+
+
+const baseBtnClass = 'px-3 py-1 border rounded hover:bg-gray-200 transition';
+
 
 // 쇼핑몰 유형을 서버에서 가져와서 드롭다운에 표시
 function fetchShopTypes() {
@@ -197,8 +316,9 @@ function fetchAccounts() {
 
 
 // 페이지 로드 시 자동 호출
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', () => {
     fetchShopTypes();
+    fetchProducts();
     document.getElementById('shop_type').addEventListener('change', fetchAccounts);
 });
 
@@ -251,8 +371,10 @@ function renderTable() {
   </div>
 </td>
             <td class="p-2 border">${product.product_name}</td>
+<td class="p-2 border">${product.option_name ?? '옵션없음'}</td>
+
             <td class="p-2 border">${product.product_code}</td>
-            <td class="p-2 border">${product.price}원</td>
+<td class="p-2 border">${formatPrice(product.price)}원</td>
             <td class="p-2 border">${product.status}</td>
             <td class="p-2 border">${product.stock}</td>
            <td class="p-2 border">
@@ -270,7 +392,8 @@ function renderTable() {
         tableBody.appendChild(row);
     });
 
-    document.getElementById('currentPage').innerText = currentPage;
+    renderPagination(); // ✅ 여기 추가
+
 }
 
 
@@ -306,6 +429,44 @@ function toggleAllCheckboxes(source) {
   document.querySelectorAll('.productCheckbox').forEach(checkbox => {
     checkbox.checked = source.checked;
   });
+}
+
+function formatPrice(price) {
+    const num = parseFloat(price);
+    if (isNaN(num)) return '0';
+    return isNaN(num) ? '0' : Math.floor(num).toLocaleString();
+}
+</script>
+
+<script>
+document.getElementById('importForm').addEventListener('submit', function(e) {
+    e.preventDefault(); // 기본 폼 제출 막기
+
+    const formData = new FormData(this);
+
+    fetch('/products/import', {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+        },
+        body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+        const message = data.message || '알 수 없는 결과';
+        document.getElementById('modalMessage').innerText = message;
+        document.getElementById('statusModal').classList.remove('hidden');
+    })
+    .catch(err => {
+        document.getElementById('modalMessage').innerText = '수집 중 오류 발생: ' + err.message;
+        document.getElementById('statusModal').classList.remove('hidden');
+    });
+});
+
+function closeModal() {
+    document.getElementById('statusModal').classList.add('hidden');
+    // 모달 닫은 후 페이지 새로고침
+    window.location.reload();
 }
 </script>
 

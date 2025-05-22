@@ -69,10 +69,11 @@ class ProductController extends Controller
         DB::purge('dynamic');
 
         $products = DB::connection('dynamic')
-            ->table('shopping_mall_products_temp')
-            ->select('product_id', 'product_name', 'product_code', 'price', 'status', 'stock', 'main_image_url')
-            ->where('status', '!=', '제외')
-            ->get();
+    ->table('shopping_mall_products_temp')
+    ->select('product_id', 'product_name', 'product_code', 'price', 'status', 'stock', 'main_image_url', 'option_name') // ✅ 추가
+    ->where('status', '!=', '제외')
+    ->get();
+
 
         return response()->json(['products' => $products]);
     }

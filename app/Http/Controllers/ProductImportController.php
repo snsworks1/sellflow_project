@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Support\Facades\Log;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -38,10 +39,10 @@ class ProductImportController extends Controller
          $shopType = $request->input('shop_type');
          $shopAccount = $request->input('shop_account');
          $dateRange = $request->input('date_range');
- 
+     
          $startDate = Carbon::now()->subDay()->format('Y-m-d');
          $endDate = Carbon::now()->format('Y-m-d');
- 
+     
          if ($dateRange !== 'all') {
              switch ($dateRange) {
                  case '1d': $startDate = Carbon::now()->subDay()->format('Y-m-d'); break;
@@ -52,106 +53,69 @@ class ProductImportController extends Controller
                  case '1y': $startDate = Carbon::now()->subYear()->format('Y-m-d'); break;
              }
          }
- 
+     
          $params = [
              'created_start_date' => $startDate,
              'created_end_date' => $endDate,
+             'embed' => 'options',
+             'limit' => 100
          ];
- 
-         \Log::info('수집할 상품 등록일 범위:', $params);
- 
+     
+         Log::info('수집할 상품 등록일 범위:', $params);
+     
          $userId = Auth::id();
          $dbName = "sellflow_global_{$userId}";
- 
          config(['database.connections.dynamic.database' => $dbName]);
          DB::purge('dynamic');
-
-
-        
- 
+     
          $mall = DB::connection('dynamic')
-    ->table('shopping_mall_integrations')
-    ->where('mall_id', $shopAccount)
-    ->where('platform', $shopType)
-    ->where('user_id', Auth::id()) // ✅ 유저 ID 추가
-    ->first();
- 
+             ->table('shopping_mall_integrations')
+             ->where('mall_id', $shopAccount)
+             ->where('platform', $shopType)
+             ->where('user_id', $userId)
+             ->first();
+     
          if (!$mall) {
-             \Log::error('해당하는 쇼핑몰 데이터를 찾을 수 없습니다.');
              return response()->json(['success' => false, 'message' => '쇼핑몰 데이터를 찾을 수 없습니다.']);
          }
- 
-         \Log::info('가져온 Mall 데이터:', (array)$mall);
- 
+     
          $mallArray = json_decode(json_encode($mall), true);
- 
+     
          $totalProductCount = $this->getTotalProductCount($mallArray, $params);
-         \Log::info("총 예상 수집 상품 개수: {$totalProductCount}");
- 
-         if ($totalProductCount === 0) {
-             return response()->json([
-                 'success' => true,
-                 'message' => '해당 기간에 수집할 상품이 없습니다.'
-             ]);
+         Log::info("총 예상 수집 상품 개수: {$totalProductCount}");
+     
+         if ($totalProductCount > 5000) {
+             return response()->json(['success' => false, 'message' => '❗ 5000개를 초과하여 수집할 수 없습니다. 날짜를 조정해주세요.']);
          }
- 
-         $allProducts = [];
-         $perPage = 100;
-         $offset = 0;
- 
-         // ✅ 수집 제외할 상품코드 (임시저장, 등록완료, 제외 상태)
+     
          $excludedProductIds = DB::connection('dynamic')
              ->table('shopping_mall_products_temp')
              ->whereIn('status', ['제외', '등록완료'])
              ->pluck('product_id')
              ->toArray();
- 
-         \Log::info('수집 제외할 상품 코드:', $excludedProductIds);
- 
-         do {
-             $params['limit'] = $perPage;
-             $params['offset'] = $offset;
- 
-             \Log::info("API 호출 - offset: {$offset}");
- 
-             $response = $this->cafe24ApiService->getProducts($mallArray, $params);
- 
-             if (!is_array($response) || !isset($response['products'])) {
-                 \Log::error('API 응답 데이터가 배열이 아니거나 products 키가 없습니다.');
-                 break;
+     
+         Log::info('수집 제외할 상품 코드:', $excludedProductIds);
+     
+         $result = $this->cafe24ApiService->fetchProducts($mallArray['mall_id'], $mallArray['access_token'], $params);
+     
+         if (!$result['success']) {
+             return response()->json(['success' => false, 'message' => '상품 수집 실패']);
+         }
+     
+         $products = collect($result['products'])
+             ->unique('product_no')
+             ->filter(fn($p) => !in_array($p['product_no'], $excludedProductIds))
+             ->values()
+             ->all();
+     
+         Log::info('최종 수집된 상품 개수: ' . count($products));
+     
+         foreach ($products as $product) {
+             $product['option_summary'] = null;
+             if (isset($product['options']) && is_array($product['options'])) {
+                 $product['option_summary'] = implode(', ', array_map(fn($opt) => ($opt['option_name'] ?? '') . ':' . ($opt['option_value'] ?? ''), $product['options']));
              }
- 
-             $products = $response['products'];
- 
-             if (empty($products)) {
-                 \Log::warning('API 응답 데이터가 비어 있습니다. 추가 데이터가 없습니다.');
-                 break;
-             }
- 
-             // ✅ 수집 제외할 상품코드 필터링
-             $filteredProducts = array_filter($products, function ($product) use ($excludedProductIds) {
-                 return !in_array($product['product_no'], $excludedProductIds);
-             });
- 
-             if (empty($filteredProducts)) {
-                 \Log::info('필터링 결과 저장할 상품이 없습니다.');
-                 break;
-             }
- 
-             $allProducts = array_merge($allProducts, $filteredProducts);
-             \Log::info('현재 수집된 상품 개수: ' . count($allProducts));
- 
-             $offset += $perPage; // ✅ 다음 페이지를 위한 offset 증가
-             \Log::info("다음 페이지를 위한 offset 설정: {$offset}");
- 
-             usleep(500000);
- 
-         } while (count($allProducts) < $totalProductCount);
- 
-         \Log::info('최종 수집된 상품 개수: ' . count($allProducts));
- 
-         // ✅ 임시 테이블에 데이터 저장
-         foreach ($allProducts as $product) {
+     
              DB::connection('dynamic')->table('shopping_mall_products_temp')->updateOrInsert(
                  ['product_id' => $product['product_no']],
                  [
@@ -159,6 +123,7 @@ class ProductImportController extends Controller
                      'shop_account' => $shopAccount,
                      'product_code' => $product['product_code'] ?? null,
                      'product_name' => $product['product_name'],
+                     'option_name' => $product['option_summary'],
                      'category' => $product['category'] ?? null,
                      'price' => $product['price'] ?? 0,
                      'original_price' => $product['retail_price'] ?? 0,
@@ -168,8 +133,7 @@ class ProductImportController extends Controller
                      'supplier_name' => $product['supplier_name'] ?? null,
                      'status' => '임시저장',
                      'supply_price' => $product['supply_price'] ?? 0,
-                     'adult_certification' => $product['adult_certification'] === 'T' ? true : false,
-                     'option_name' => $product['option_name'] ?? null,
+                     'adult_certification' => $product['adult_certification'] === 'T',
                      'manufacturer' => $product['manufacturer'] ?? null,
                      'brand' => $product['brand_name'] ?? null,
                      'created_at' => now(),
@@ -177,20 +141,11 @@ class ProductImportController extends Controller
                  ]
              );
          }
- 
-         \Log::info('임시 테이블에 저장 완료');
- 
-         return response()->json([
-             'success' => true,
-             'message' => count($allProducts) . '개의 상품을 임시 테이블에 저장했습니다.'
-         ]);
+     
+         Log::info('임시 테이블에 저장 완료: ' . count($products) . '개');
+         return response()->json(['success' => true, 'message' => count($products) . '개의 상품을 임시 테이블에 저장했습니다.']);
      }
-
-
-
-
-
-
+     
      
      
     

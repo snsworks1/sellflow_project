@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\DB;
 use App\Models\OauthIntegration;
 use Carbon\Carbon;
 
+
 class Cafe24ApiService
 {
     /**
@@ -166,55 +167,51 @@ public function fetchProducts(string $mallId, string $accessToken, array $params
     try {
         $endpoint = "https://{$mallId}.cafe24api.com/api/v2/admin/products";
         $allProducts = [];
-        $perPage = 100;
+        $perPage = $params['limit'] ?? 100;
         $offset = 0;
-        $totalProductCount = null;
 
-        do {
+        $headers = [
+            'Authorization' => "Bearer {$accessToken}",
+            'Content-Type' => 'application/json',
+            'X-Cafe24-Api-Version' => '2025-03-01',
+        ];
+
+        while (true) {
             $params['limit'] = $perPage;
             $params['offset'] = $offset;
-            $params['sort'] = 'created_date';
-            $params['order'] = 'desc'; // 최신 데이터부터 가져오기
 
-            \Log::info("API 호출 - offset: {$offset}");
+            $query = http_build_query($params);
+            $url = "{$endpoint}?{$query}";
+            Log::info("API 호출 URL: {$url}");
 
-            $headers = [
-                'Authorization' => "Bearer {$accessToken}",
-                'Content-Type' => 'application/json',
-                'X-Cafe24-Api-Version' => '2024-12-01',
-            ];
-
-            $response = Http::withHeaders($headers)->get($endpoint, $params);
+            $response = Http::withHeaders($headers)->get($url);
 
             if ($response->failed()) {
-                \Log::error('상품 수집 실패: ' . $response->body());
+                Log::error('상품 수집 실패: ' . $response->body());
                 break;
             }
 
-            $responseData = $response->json();
+            $products = $response->json()['products'] ?? [];
 
-            if (!isset($responseData['products']) || empty($responseData['products'])) {
-                \Log::warning('API 응답 데이터가 비어 있습니다.');
+            if (empty($products)) {
+                Log::info("마지막 페이지 도달: 더 이상 상품 없음.");
                 break;
             }
 
-            $products = $responseData['products'];
             $allProducts = array_merge($allProducts, $products);
-            \Log::info('현재 수집된 상품 개수: ' . count($allProducts));
 
             $offset += $perPage;
-
             usleep(500000); // 0.5초 대기
-
-        } while (true);
+        }
 
         return ['success' => true, 'products' => $allProducts];
-
     } catch (\Exception $e) {
-        \Log::error('상품 수집 중 오류 발생: ' . $e->getMessage());
-        return ['success' => false, 'message' => '상품 수집 중 오류 발생: ' . $e->getMessage()];
+        Log::error('상품 수집 중 오류 발생: ' . $e->getMessage());
+        return ['success' => false, 'message' => $e->getMessage()];
     }
 }
+
+
 
 
 
