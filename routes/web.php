@@ -13,6 +13,8 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/products/get-shop-types', [ProductController::class, 'getShopTypes']);
     Route::get('/products/get-accounts', [ProductController::class, 'getShopAccounts']);
     Route::get('/api/products/get-products', [ProductController::class, 'getProducts']);
+    Route::post('/products/import', [ProductImportController::class, 'importProducts'])->name('products.import');
+
 });
 
 Route::get('/integration/reauth/{id}', [IntegrationController::class, 'reauth'])->name('integration.reauth'); //재연동 

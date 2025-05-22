@@ -1,6 +1,27 @@
 @extends('layouts.app')
 
 @section('content')
+
+<style>
+#image-preview {
+  all: initial; /* 다른 스타일 초기화 */
+  display: none;
+  position: fixed;
+  z-index: 9999;
+  border: 2px solid #ddd;
+  background: white;
+  padding: 4px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.3);
+}
+
+#image-preview img {
+  all: initial;
+  max-width: 300px;
+  max-height: 300px;
+}
+
+</style>
+
 <div class="container mx-auto p-4">
     <h2 class="text-2xl font-bold mb-4">쇼핑몰 상품 수집</h2>
 
@@ -19,9 +40,9 @@
                     </select>
 
                     <label for="shop_account" class="block text-lg font-medium text-gray-700 mb-2">쇼핑몰 계정:</label>
-        <select id="shop_account" class="w-full p-3 border rounded-md mb-4">
-            <option value="">먼저 쇼핑몰 유형을 선택해주세요</option>
-        </select>
+                    <select id="shop_account" name="shop_account" class="w-full p-3 border rounded-md mb-4">
+    <option value="">먼저 쇼핑몰 유형을 선택해주세요</option>
+</select>
                 </div>
                 
                 <div>
@@ -47,18 +68,35 @@
     <div class="bg-white p-4 shadow-md rounded-md">
         <h3 class="text-xl font-bold mb-4">수집된 상품 목록</h3>
 
+        <div class="mb-2 flex flex-wrap gap-2">
+  <button onclick="bulkMark('new')" class="px-4 py-2 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-lg shadow-md transition">선택 → 신규</button>
+  <button onclick="bulkMark('match')" class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg shadow-md transition">선택 → 매칭</button>
+  <button 
+  onclick="bulkMark('exclude')" 
+  style="background-color:#334155 !important; color:#fff !important;" 
+  class="px-4 py-2 font-semibold rounded-lg shadow-md transition">
+  선택 → 제외
+</button>
+</div>
         <!-- 상품 리스트 테이블 -->
         <div class="overflow-x-auto">
-            <table class="min-w-full bg-white border border-gray-200">
-                <thead>
+        <table class="w-full min-w-fit table-auto bg-white border border-gray-200">
+        <thead>
                     <tr class="bg-gray-100">
-                        <th class="p-2 border"><input type="checkbox" id="selectAllCheckbox"></th>
-                        <th class="p-2 border">이미지</th>
+                    <th class="p-2 border">
+                    <input type="checkbox"
+       id="selectAllCheckbox"
+       onchange="toggleAllCheckboxes(this)"
+       class="productCheckbox accent-indigo-500 w-5 h-5 rounded border-gray-300 shadow-sm hover:ring-2 hover:ring-indigo-300">
+
+                    </th>
+                        <th class="image-column">이미지</th>
                         <th class="p-2 border">상품명</th>
                         <th class="p-2 border">상품코드</th>
                         <th class="p-2 border">가격</th>
                         <th class="p-2 border">상태</th>
                         <th class="p-2 border">재고</th>
+                        <th class="p-2 border">동작</th>
                     </tr>
                 </thead>
                 <tbody id="productTableBody"></tbody>
@@ -72,6 +110,11 @@
             <button id="nextPage" class="px-3 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">다음</button>
         </div>
     </div>
+</div>
+
+<!-- 이미지 미리보기 박스 -->
+<div id="image-preview" style="display:none; position:fixed; top:100px; left:100px; z-index:9999; border:2px solid #ddd; background:#fff; padding:4px; box-shadow:0 0 10px rgba(0,0,0,0.3)">
+  <img id="preview-img" src="" style="max-width:300px; max-height:300px;">
 </div>
 
 <script>
@@ -196,13 +239,33 @@ function renderTable() {
     pageItems.forEach(product => {
         const row = document.createElement('tr');
         row.innerHTML = `
-            <td class="p-2 border"><input type="checkbox" class="productCheckbox" value="${product.product_id}"></td>
-            <td class="p-2 border"><img src="${product.main_image_url}" class="w-12 h-12 object-cover"></td>
+            <td class="p-2 border">
+  <input type="checkbox"
+         class="productCheckbox accent-indigo-500 w-5 h-5 rounded border-gray-300 shadow-sm hover:ring-2 hover:ring-indigo-300">
+</td>
+
+           <td class="image-column border p-2 text-center align-middle">
+  <div class="thumbnail-wrapper inline-block">
+    <img src="${product.main_image_url}" class="thumbnail" alt="상품 이미지"
+     onmousemove="movePreview(event, this)" onmouseout="hidePreview()" style="max-width:80px; max-height:80px;">
+  </div>
+</td>
             <td class="p-2 border">${product.product_name}</td>
             <td class="p-2 border">${product.product_code}</td>
             <td class="p-2 border">${product.price}원</td>
             <td class="p-2 border">${product.status}</td>
             <td class="p-2 border">${product.stock}</td>
+           <td class="p-2 border">
+  <div class="flex flex-wrap gap-1">
+    <button class="min-w-[64px] px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-lg shadow-md transition-all">신규</button>
+    <button class="min-w-[64px] px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg shadow-md transition-all">매칭</button>
+<button style="background-color:#334155 !important; color:#fff !important;"
+  class="min-w-[64px] px-3 py-1.5 font-semibold rounded-md shadow-sm transition-all duration-150">
+  제외
+</button>
+  </div>
+</td>
+
         `;
         tableBody.appendChild(row);
     });
@@ -222,7 +285,28 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 </script>
+<script>
+function movePreview(event, img) {
+  const preview = document.getElementById('image-preview');
+  const previewImg = document.getElementById('preview-img');
 
+  previewImg.src = img.src;
+  preview.style.display = 'block';
 
+  // 마우스 위치 기준으로 약간 오른쪽/아래로 띄움
+  preview.style.top = (event.clientY + 20) + 'px';
+  preview.style.left = (event.clientX + 20) + 'px';
+}
+
+function hidePreview() {
+  document.getElementById('image-preview').style.display = 'none';
+}
+
+function toggleAllCheckboxes(source) {
+  document.querySelectorAll('.productCheckbox').forEach(checkbox => {
+    checkbox.checked = source.checked;
+  });
+}
+</script>
 
 @endsection

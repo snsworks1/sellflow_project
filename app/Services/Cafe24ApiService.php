@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\DB;
 use App\Models\OauthIntegration;
@@ -56,8 +57,9 @@ if (Carbon::now()->greaterThanOrEqualTo($expiresAt)) {
         return [];
     }
 }
-Log::info('전송할 데이터: ' . json_encode($data, JSON_UNESCAPED_UNICODE));
-
+if (isset($data) && is_array($data)) {
+    Log::info('전송할 데이터:', $data); // 두 번째 인자에 배열 그대로 전달
+}
         \Log::info('유효한 Access Token 사용: ' . $accessToken);
     
         $headers = [
@@ -81,8 +83,8 @@ Log::info('전송할 데이터: ' . json_encode($data, JSON_UNESCAPED_UNICODE));
 
 
     // Cafe24 엑세스 토큰을 갱신합니다.
-public function refreshAccessToken(string $mallId, string $refreshToken, int $userId): array
-{
+    public function refreshAccessToken(string $mallId, string $refreshToken, int $userId)
+    {
     $clientId = env('CAFE24_CLIENT_ID');
     $clientSecret = env('CAFE24_CLIENT_SECRET');
 
@@ -221,7 +223,7 @@ private function isAccessTokenExpired($mallId): bool
     $oauthData = OauthIntegration::where('mall_id', $mallId)->first();
 
     if (!$oauthData) {
-        \Log::error("OAuth 데이터 없음: Mall ID = $mallId");
+        \Log::error("OAuth 데이터 없음: Mall ID = " . json_encode($mallId, JSON_UNESCAPED_UNICODE));
         return true;
     }
 
@@ -233,18 +235,27 @@ private function isAccessTokenExpired($mallId): bool
 
 
 
-public function getProducts($mallId, $dateRange)
+public function getProducts($mall, $dateRange) // <-- 매개변수 명확히 $mall
 {
-    Log::info("Cafe24 상품 데이터 요청: Mall ID = $mallId");
+    $mallId = is_array($mall) ? ($mall['mall_id'] ?? null) : ($mall->mall_id ?? null);
+    $userId = is_array($mall) ? ($mall['user_id'] ?? null) : ($mall->user_id ?? null);
+    $refreshToken = is_array($mall) ? ($mall['refresh_token'] ?? null) : ($mall->refresh_token ?? null);
+
+    if (!is_string($mallId)) {
+        Log::warning('⚠️ mallId가 문자열이 아닙니다: ' . json_encode($mall));
+        return ['success' => false, 'message' => 'mallId 형식 오류'];
+    }
+
+    Log::info("Cafe24 상품 데이터 요청: Mall ID = {$mallId}");
 
     // ✅ Access Token 만료 여부 확인 및 갱신
     if ($this->isAccessTokenExpired($mallId)) {
         Log::info("Access Token이 만료됨. Refresh Token으로 갱신 시도...");
-        $this->refreshAccessToken($mallId);
+        $this->refreshAccessToken($mallId, $refreshToken, $userId);
     }
 
     // ✅ Access Token 가져오기
-    $accessToken = $this->getAccessToken($mallId);
+    $accessToken = is_array($mall) ? ($mall['access_token'] ?? null) : ($mall->access_token ?? null);
     Log::info("사용할 Access Token: " . $accessToken);
 
     // ✅ API 요청 URL
@@ -267,6 +278,7 @@ public function getProducts($mallId, $dateRange)
 
     return $response->json();
 }
+
 
 
 

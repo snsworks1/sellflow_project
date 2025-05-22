@@ -65,6 +65,9 @@ class ProductImportController extends Controller
  
          config(['database.connections.dynamic.database' => $dbName]);
          DB::purge('dynamic');
+
+
+        
  
          $mall = DB::connection('dynamic')
     ->table('shopping_mall_integrations')
