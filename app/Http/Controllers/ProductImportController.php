@@ -111,10 +111,22 @@ class ProductImportController extends Controller
          Log::info('최종 수집된 상품 개수: ' . count($products));
      
          foreach ($products as $product) {
-             $product['option_summary'] = null;
-             if (isset($product['options']) && is_array($product['options'])) {
-                 $product['option_summary'] = implode(', ', array_map(fn($opt) => ($opt['option_name'] ?? '') . ':' . ($opt['option_value'] ?? ''), $product['options']));
-             }
+            $product['option_summary'] = null;
+
+            if (isset($product['options']) && is_array($product['options'])) {
+                // ⚠️ 빈 옵션 제외 후, 옵션 문자열 생성
+                $filteredOptions = array_filter($product['options'], function ($opt) {
+                    return !empty($opt['option_name']) || !empty($opt['option_value']);
+                });
+        
+                $optionStrings = array_map(function ($opt) {
+                    $name = trim($opt['option_name'] ?? '');
+                    $value = trim($opt['option_value'] ?? '');
+                    return "{$name}:{$value}";
+                }, $filteredOptions);
+        
+                $product['option_summary'] = implode(', ', array_filter($optionStrings));
+            }
      
              DB::connection('dynamic')->table('shopping_mall_products_temp')->updateOrInsert(
                  ['product_id' => $product['product_no']],
