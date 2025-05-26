@@ -76,6 +76,48 @@ sellflow_project-master/
 
 ## 🛠️ 개발 이력
 
+
+✅ 최근 작업 내역 (2025-05-26 기준)
+1️⃣ Cafe24 상품 수집 로직 리팩토링
+기존 since_product_no 방식 → offset 기반 수집 방식으로 변경
+
+무한 루프 및 중복 수집 문제 해결
+
+limit=100, offset+=100 방식으로 최대 5000개까지 안정적으로 수집
+
+importProducts() 함수 내에서 전체 수집 흐름 일원화
+
+별도 fetchProducts() 함수 제거
+
+컨트롤러에서 직접 offset 루프를 통해 상품 수집 처리
+
+2️⃣ 날짜 필터 기능 적용
+수집 대상 기간을 선택할 수 있도록 옵션 적용 (1d, 3d, 7d, 1m, 6m, 1y)
+
+선택된 기간은 created_start_date / created_end_date 파라미터로 Cafe24 API에 전달됨
+
+3️⃣ 수집 상품 개수 사전 체크
+getTotalProductCount() 함수 구현
+
+수집 전 전체 상품 개수를 조회하고, 5000개 초과 시 수집 차단 및 에러 메시지 출력
+
+4️⃣ 상품 옵션 요약 처리 (option_summary 필드)
+각 상품의 옵션 정보를 "옵션명:옵션값" 형태로 문자열로 변환하여 DB에 저장
+
+예시: "색상:레드, 사이즈:M"
+
+5️⃣ Access Token 만료 자동 갱신 로직 적용
+수집 도중 또는 사전 토큰 만료 감지 시 자동으로 Refresh Token을 사용해 재발급
+
+갱신 후 DB에서 최신 Mall 정보를 재조회하여 새로운 Access Token 반영
+
+🔧 기타 개선 사항
+AppServiceProvider.php 내 잘못된 URL::forceScheme() 사용 오류 수정 (Illuminate\Support\Facades\URL import)
+
+로깅 및 예외 처리 강화 (Log::info, Log::error 다수 개선)
+
+
+
 ### ✅ 2025-05-21
 
 - 쇼핑몰 상품 수집 리스트 UI 개선
@@ -113,3 +155,5 @@ sellflow_project-master/
 - 향후 개선 예정:
     - 수집 대상 상품 수 사전 확인 기능
     - 5000개 이상 수집 시 '경고창' 노출
+
+
