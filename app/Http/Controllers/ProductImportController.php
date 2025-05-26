@@ -79,15 +79,6 @@ class ProductImportController extends Controller
              return response()->json(['success' => false, 'message' => '쇼핑몰 데이터를 찾을 수 없습니다.']);
          }
      
-         $mallArray = json_decode(json_encode($mall), true);
-     
-         $totalProductCount = $this->getTotalProductCount($mallArray, $params);
-         Log::info("총 예상 수집 상품 개수: {$totalProductCount}");
-     
-         if ($totalProductCount > 5000) {
-             return response()->json(['success' => false, 'message' => '❗ 5000개를 초과하여 수집할 수 없습니다. 날짜를 조정해주세요.']);
-         }
-     
          $excludedProductIds = DB::connection('dynamic')
              ->table('shopping_mall_products_temp')
              ->whereIn('status', ['제외', '등록완료'])
@@ -96,66 +87,78 @@ class ProductImportController extends Controller
      
          Log::info('수집 제외할 상품 코드:', $excludedProductIds);
      
-         $result = $this->cafe24ApiService->fetchProducts($mallArray['mall_id'], $mallArray['access_token'], $params);
+         // ✅ 반복 수집 시작
+         $offset = 0;
+         $limit = 100;
+         $allProducts = [];
      
-         if (!$result['success']) {
-             return response()->json(['success' => false, 'message' => '상품 수집 실패']);
+         while (true) {
+             $params['offset'] = $offset;
+             $params['limit'] = $limit;
+     
+             $response = $this->cafe24ApiService->requestWithToken($mall, 'products', $params, 'GET');
+     
+             if (!is_array($response) || !isset($response['products'])) {
+                 break;
+             }
+     
+             $products = $response['products'];
+     
+             if (empty($products)) {
+                 break;
+             }
+     
+             foreach ($products as &$product) {
+                 if (in_array($product['product_no'], $excludedProductIds)) {
+                     continue;
+                 }
+     
+                 $product['option_summary'] = null;
+                 if (isset($product['options']) && is_array($product['options'])) {
+                     $filteredOptions = array_filter($product['options'], fn($opt) =>
+                         !empty($opt['option_name']) || !empty($opt['option_value']));
+                     $optionStrings = array_map(fn($opt) => trim($opt['option_name'] ?? '') . ':' . trim($opt['option_value'] ?? ''), $filteredOptions);
+                     $product['option_summary'] = implode(', ', array_filter($optionStrings));
+                 }
+     
+                 DB::connection('dynamic')->table('shopping_mall_products_temp')->updateOrInsert(
+                     ['product_id' => $product['product_no']],
+                     [
+                         'shop_type' => $shopType,
+                         'shop_account' => $shopAccount,
+                         'product_code' => $product['product_code'] ?? null,
+                         'product_name' => $product['product_name'],
+                         'option_name' => $product['option_summary'],
+                         'category' => $product['category'] ?? null,
+                         'price' => $product['price'] ?? 0,
+                         'original_price' => $product['retail_price'] ?? 0,
+                         'stock' => $product['stock'] ?? 0,
+                         'main_image_url' => $product['detail_image'] ?? null,
+                         'model_name' => $product['model_name'] ?? null,
+                         'supplier_name' => $product['supplier_name'] ?? null,
+                         'status' => '임시저장',
+                         'supply_price' => $product['supply_price'] ?? 0,
+                         'adult_certification' => $product['adult_certification'] === 'T',
+                         'manufacturer' => $product['manufacturer'] ?? null,
+                         'brand' => $product['brand_name'] ?? null,
+                         'created_at' => now(),
+                         'updated_at' => now(),
+                     ]
+                 );
+     
+                 $allProducts[] = $product;
+             }
+     
+             if (count($products) < $limit) {
+                 break; // 마지막 페이지
+             }
+     
+             $offset += $limit;
+             usleep(500000); // 0.5초 대기
          }
      
-         $products = collect($result['products'])
-             ->unique('product_no')
-             ->filter(fn($p) => !in_array($p['product_no'], $excludedProductIds))
-             ->values()
-             ->all();
-     
-         Log::info('최종 수집된 상품 개수: ' . count($products));
-     
-         foreach ($products as $product) {
-            $product['option_summary'] = null;
-
-            if (isset($product['options']) && is_array($product['options'])) {
-                // ⚠️ 빈 옵션 제외 후, 옵션 문자열 생성
-                $filteredOptions = array_filter($product['options'], function ($opt) {
-                    return !empty($opt['option_name']) || !empty($opt['option_value']);
-                });
-        
-                $optionStrings = array_map(function ($opt) {
-                    $name = trim($opt['option_name'] ?? '');
-                    $value = trim($opt['option_value'] ?? '');
-                    return "{$name}:{$value}";
-                }, $filteredOptions);
-        
-                $product['option_summary'] = implode(', ', array_filter($optionStrings));
-            }
-     
-             DB::connection('dynamic')->table('shopping_mall_products_temp')->updateOrInsert(
-                 ['product_id' => $product['product_no']],
-                 [
-                     'shop_type' => $shopType,
-                     'shop_account' => $shopAccount,
-                     'product_code' => $product['product_code'] ?? null,
-                     'product_name' => $product['product_name'],
-                     'option_name' => $product['option_summary'],
-                     'category' => $product['category'] ?? null,
-                     'price' => $product['price'] ?? 0,
-                     'original_price' => $product['retail_price'] ?? 0,
-                     'stock' => $product['stock'] ?? 0,
-                     'main_image_url' => $product['detail_image'] ?? null,
-                     'model_name' => $product['model_name'] ?? null,
-                     'supplier_name' => $product['supplier_name'] ?? null,
-                     'status' => '임시저장',
-                     'supply_price' => $product['supply_price'] ?? 0,
-                     'adult_certification' => $product['adult_certification'] === 'T',
-                     'manufacturer' => $product['manufacturer'] ?? null,
-                     'brand' => $product['brand_name'] ?? null,
-                     'created_at' => now(),
-                     'updated_at' => now(),
-                 ]
-             );
-         }
-     
-         Log::info('임시 테이블에 저장 완료: ' . count($products) . '개');
-         return response()->json(['success' => true, 'message' => count($products) . '개의 상품을 임시 테이블에 저장했습니다.']);
+         Log::info('임시 테이블에 저장 완료: ' . count($allProducts) . '개');
+         return response()->json(['success' => true, 'message' => count($allProducts) . '개의 상품을 임시 테이블에 저장했습니다.']);
      }
      
      

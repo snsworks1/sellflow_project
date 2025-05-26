@@ -15,67 +15,84 @@ class Cafe24ApiService
      * 엑세스 토큰을 사용하여 API 요청을 수행합니다.
      * 만료 시간이 임박했을 경우 자동으로 토큰을 갱신합니다.
      */
-    public function requestWithToken($mall, $endpoint, $params = [], $method = 'GET')
-    {
-        \Log::info('requestWithToken 메서드 호출됨');
     
-        if (!is_object($mall)) {
-            \Log::error('Mall 데이터가 객체가 아닙니다. 올바른 객체를 전달해야 합니다.');
-            return [];
-        }
-    
-        $accessToken = $mall->access_token;
-        $expiresAt = Carbon::parse($mall->expires_at);
-        $refreshToken = $mall->refresh_token;
-        $refreshTokenExpiresAt = Carbon::parse($mall->refresh_token_expires_at);
-    
-        \Log::info('Access Token 만료 시간: ' . $expiresAt);
-        \Log::info('Refresh Token 만료 시간: ' . $refreshTokenExpiresAt);
-    
-// 엑세스 토큰 만료 시 자동 갱신
-if (Carbon::now()->greaterThanOrEqualTo($expiresAt)) {
-    \Log::info('Access Token 만료됨. Refresh Token을 사용하여 갱신 시도.');
-
-    if (Carbon::now()->greaterThanOrEqualTo($refreshTokenExpiresAt)) {
-        \Log::error('Refresh Token도 만료되었습니다.');
-        return [];
-    }
-
-    // ✅ $mall 데이터를 배열로 변환
-    $mallArray = (array) $mall;
-    $mallId = $mallArray['mall_id'] ?? null;
-    $userId = $mallArray['user_id'] ?? null;
-
-    if (!$mallId) {
-        \Log::error('올바른 mall_id를 찾을 수 없습니다.');
-        return [];
-    }
-
-    $accessToken = $this->refreshAccessToken($mallId, $refreshToken, $userId);
-    
-    if (!$accessToken) {
-        \Log::error('Access Token 갱신 실패.');
-        return [];
-    }
-}
-if (isset($data) && is_array($data)) {
-    Log::info('전송할 데이터:', $data); // 두 번째 인자에 배열 그대로 전달
-}
-        \Log::info('유효한 Access Token 사용: ' . $accessToken);
-    
-        $headers = [
-            'Authorization' => 'Bearer ' . $accessToken,
-            'Content-Type' => 'application/json',
-            'X-Cafe24-Api-Version' => '2024-12-01', // ✅ 올바른 API 버전 추가
-        ];
-    
-        // ✅ URL 경로 수정: api/v2 + admin/products
-        $url = "https://{$mall->mall_id}.cafe24api.com/api/v2/admin/{$endpoint}";
-    
-        return $this->makeRequest($method, $url, $params, $headers);
-    }
-    
-
+     public function requestWithToken($mall, $endpoint, $params = [], $method = 'GET')
+     {
+         \Log::info('📌 requestWithToken() 호출');
+     
+         // 객체 검사
+         if (!is_object($mall)) {
+             \Log::error('❌ Mall 객체가 아닙니다.');
+             return ['success' => false, 'message' => '잘못된 mall 객체'];
+         }
+     
+         $accessToken = $mall->access_token;
+         $expiresAt = Carbon::parse($mall->expires_at);
+         $refreshToken = $mall->refresh_token;
+         $refreshTokenExpiresAt = Carbon::parse($mall->refresh_token_expires_at);
+     
+         $mallId = $mall->mall_id ?? null;
+         $userId = $mall->user_id ?? null;
+     
+         if (!$mallId || !$userId) {
+             \Log::error('❌ mall_id 또는 user_id 없음');
+             return ['success' => false, 'message' => 'mall_id 또는 user_id 없음'];
+         }
+     
+         // ✅ Access Token 만료 확인
+         if (Carbon::now()->greaterThanOrEqualTo($expiresAt)) {
+             \Log::warning("🔄 Access Token 만료. 갱신 시도: {$mallId}");
+     
+             if (Carbon::now()->greaterThanOrEqualTo($refreshTokenExpiresAt)) {
+                 \Log::error("❌ Refresh Token도 만료됨. 재연동 필요");
+                 return ['success' => false, 'message' => 'Refresh Token 만료. 재인증 필요'];
+             }
+     
+             $tokenResult = $this->refreshAccessToken($mallId, $refreshToken, $userId);
+     
+             if (!isset($tokenResult['success']) || !$tokenResult['success']) {
+                 \Log::error("❌ Access Token 갱신 실패");
+                 return ['success' => false, 'message' => 'Access Token 갱신 실패'];
+             }
+     
+             $accessToken = $tokenResult['access_token'];
+             \Log::info("✅ 새 Access Token 사용: {$accessToken}");
+         }
+     
+         // ✅ API 요청 실행
+         $headers = [
+             'Authorization' => 'Bearer ' . $accessToken,
+             'Content-Type' => 'application/json',
+             'X-Cafe24-Api-Version' => '2024-12-01',
+         ];
+     
+         $url = "https://{$mallId}.cafe24api.com/api/v2/admin/{$endpoint}";
+         $response = $this->makeRequest($method, $url, $params, $headers);
+     
+         // ✅ 401 실패 시 재시도 로직
+         if (
+             is_array($response) &&
+             isset($response['success']) &&
+             !$response['success'] &&
+             isset($response['message']) &&
+             str_contains($response['message'], '401')
+         ) {
+             \Log::warning("⚠️ 첫 요청 실패(401). 최종 재시도 시작...");
+     
+             $tokenResult = $this->refreshAccessToken($mallId, $refreshToken, $userId);
+     
+             if (isset($tokenResult['success']) && $tokenResult['success']) {
+                 $headers['Authorization'] = 'Bearer ' . $tokenResult['access_token'];
+                 return $this->makeRequest($method, $url, $params, $headers);
+             }
+     
+             return ['success' => false, 'message' => '재시도 중 Access Token 갱신 실패'];
+         }
+     
+         // ✅ ✅ ✅ 이 줄이 없으면 정상 요청 후에도 반환값 없이 끝남
+         return $response;
+     }
+     
 
 
     /**
@@ -156,60 +173,6 @@ if (isset($data) && is_array($data)) {
     }
 }
 
-
-     
-
-/**
- * Cafe24 API를 통해 상품 데이터를 수집합니다.
- */
-public function fetchProducts(string $mallId, string $accessToken, array $params = []): array
-{
-    try {
-        $endpoint = "https://{$mallId}.cafe24api.com/api/v2/admin/products";
-        $allProducts = [];
-        $perPage = $params['limit'] ?? 100;
-        $offset = 0;
-
-        $headers = [
-            'Authorization' => "Bearer {$accessToken}",
-            'Content-Type' => 'application/json',
-            'X-Cafe24-Api-Version' => '2025-03-01',
-        ];
-
-        while (true) {
-            $params['limit'] = $perPage;
-            $params['offset'] = $offset;
-
-            $query = http_build_query($params);
-            $url = "{$endpoint}?{$query}";
-            Log::info("API 호출 URL: {$url}");
-
-            $response = Http::withHeaders($headers)->get($url);
-
-            if ($response->failed()) {
-                Log::error('상품 수집 실패: ' . $response->body());
-                break;
-            }
-
-            $products = $response->json()['products'] ?? [];
-
-            if (empty($products)) {
-                Log::info("마지막 페이지 도달: 더 이상 상품 없음.");
-                break;
-            }
-
-            $allProducts = array_merge($allProducts, $products);
-
-            $offset += $perPage;
-            usleep(500000); // 0.5초 대기
-        }
-
-        return ['success' => true, 'products' => $allProducts];
-    } catch (\Exception $e) {
-        Log::error('상품 수집 중 오류 발생: ' . $e->getMessage());
-        return ['success' => false, 'message' => $e->getMessage()];
-    }
-}
 
 
 
