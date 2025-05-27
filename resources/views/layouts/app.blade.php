@@ -33,13 +33,21 @@
  
 
 </head>
-
-<body class="bg-gray-100 font-sans">
+<script>
+window.toggleDarkMode = function () {
+    const html = document.documentElement;
+    html.classList.toggle('dark');
+    localStorage.setItem('theme', html.classList.contains('dark') ? 'dark' : 'light');
+    console.log('🌙 다크모드 토글됨');
+}
+</script>
+<body class="bg-white text-black dark:bg-gray-900 dark:bg-gray-900 dark:text-white">
 
     <!-- 전체 레이아웃 -->
-    <div class="flex h-screen flex-col">
+    <div class="flex h-screen flex-col ">
         <!-- 상단 헤더 -->
-        <header class="bg-gray-100 text-gray-800 shadow p-4 flex justify-between items-center">
+        <header class="bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-white shadow p-4 flex justify-between items-center">
+            
             <!-- 왼쪽 영역 -->
             <div class="flex items-center space-x-6 relative">
                 <!-- 쇼핑몰 센터 드롭다운 -->
@@ -71,7 +79,7 @@
             </div>
 
             <!-- 중앙 정보 -->
-            <div class="text-sm text-gray-700 flex items-center space-x-6">
+            <div class="text-sm text-gray-700 flex items-center space-x-6 dark:text-white">
                 <div>남은 주문 수집 건: <span class="text-blue-600 font-bold">10,000</span></div>
                 <div>남은 상품 전송 건: <span class="text-blue-600 font-bold">5,000</span></div>
                 <div>남은 서비스 일자: <span class="text-blue-600 font-bold">30일</span></div>
@@ -96,13 +104,18 @@
         <a href="/mypage" class="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded">
             마이페이지
         </a>
+        <!-- 헤더 또는 우측 상단에 버튼 배치 -->
+        <button onclick="toggleDarkMode()" class="ml-auto px-3 py-2 border rounded text-sm">
+
+    🌗 다크모드 전환
+</button>
     </div>
         </header>
 
         <!-- 메인 레이아웃 -->
-        <div class="flex flex-1">
+        <div class="flex flex-1 ">
             <!-- Sidebar -->
-            <aside class="bg-blue-900 text-white w-64 flex flex-col">
+            <aside class="bg-blue-900 text-white w-64 flex flex-col dark:bg-gray-900 dark:text-white">
     <div class="p-6 text-center">
         <img src="{{ asset('images/logo.png') }}" alt="Logo" class="w-20 mx-auto mb-4">
         <h2 class="text-xl font-semibold">SellFlow</h2>
@@ -177,7 +190,24 @@
     });
     </script>
 
+<script>
+function toggleDarkMode() {
+    const html = document.documentElement;
+    html.classList.toggle('dark');
+    localStorage.setItem('theme', html.classList.contains('dark') ? 'dark' : 'light');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'dark') {
+        document.documentElement.classList.add('dark');
+    }
+});
+</script>
+
     @stack('scripts')
 </body>
+
 </html>
+
 

@@ -27,19 +27,43 @@
   border-color: #1D4ED8 !important;
 }
 tr.selected-row {
-  background-color: #eef2ff !important; /* bg-indigo-50 */
+    background-color: #eef2ff !important; /* 기존 흰색 계열 → 밝은 회색 */
+}
+.dark tr.selected-row {
+  background-color: #374151 !important; /* Tailwind: bg-gray-700 */
+  color: #fff !important;
 }
 .btn-new {
   background-color: #2563eb !important; /* blue-600 */
+  color: white !important;
+}
+.dark .btn-new {
+  background-color: #3b82f6 !important;
   color: white !important;
 }
 .btn-match {
   background-color: #f59e0b !important; /* yellow-500 */
   color: white !important;
 }
+.dark .btn-match {
+  background-color: #f59e22 !important;
+  color: white !important;
+}
 .btn-exclude {
   background-color: #ef4444 !important; /* red-500 */
   color: white !important;
+}
+.dark .btn-exclude {
+  background-color: #ef4411 !important;
+  color: white !important;
+}
+tr:hover {
+  background-color: #f9fafb; /* light mode */
+}
+
+.dark tr:hover {
+  background-color: #374151; /* dark mode → bg-gray-700 */
+  color: white;
 }
 
 .shop-card {
@@ -61,9 +85,9 @@ tr.selected-row {
 
 
 
-<div class="mb-4">
+<div class="mb-4 ">
     <button id="toggleImportForm"
-        class="mb-2 px-4 py-2 text-sm bg-gray-200 hover:bg-gray-300 rounded">
+        class="mb-2 px-4 py-2 text-sm bg-gray-200 hover:bg-gray-300 rounded dark:bg-gray-800 dark:text-white">
         쇼핑몰 상품 수집 열기/접기
     </button>
 
@@ -82,7 +106,7 @@ tr.selected-row {
     <div id="shopTypeCards"
      class="grid gap-4 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 mb-4">
     @foreach ($shopTypes as $type)
-        <div class="shop-card border rounded-md p-4 text-center cursor-pointer relative transition hover:shadow-md"
+        <div class="shop-card border rounded-md p-4 text-center cursor-pointer relative transition hover:shadow-md bg-white text-black dark:bg-gray-800 dark:text-white"
              data-type="{{ $type }}">
             <img src="/images/logo-{{ strtolower($type) }}.png" alt="{{ $type }}"
                  class="h-12 mx-auto mb-2 object-contain">
@@ -98,28 +122,40 @@ tr.selected-row {
     <!-- Hidden input -->
     <input type="hidden" name="shop_type" id="shop_type">
 
-    <!-- 계정/기간 설정 -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-            <label class="block mb-1 font-medium">쇼핑몰 계정</label>
-            <select id="shop_account" name="shop_account" class="w-full p-3 border rounded-md mb-4">
-                <option value="">먼저 쇼핑몰 유형을 선택해주세요</option>
-            </select>
-        </div>
-
-        <div>
-            <label class="block mb-1 font-medium">수집 기간</label>
-            <select name="date_range" class="w-full p-2 border rounded-md">
-                <option value="1d">1일</option>
-                <option value="3d">3일</option>
-                <option value="7d">7일</option>
-                <option value="1m">1개월</option>
-                <option value="6m">6개월</option>
-                <option value="1y">1년</option>
-                <option value="all">전체</option>
-            </select>
-        </div>
+  <!-- 계정/기간 설정 -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
+    <!-- 쇼핑몰 계정 -->
+    <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-white mb-2">
+            쇼핑몰 계정
+        </label>
+        <select id="shop_account" name="shop_account"
+                class="w-full px-4 py-3 rounded-md border border-gray-300 dark:border-gray-700
+                       bg-white dark:bg-gray-900 text-sm text-gray-800 dark:text-white
+                       focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="">먼저 쇼핑몰 유형을 선택해주세요</option>
+        </select>
     </div>
+
+    <!-- 수집 기간 -->
+    <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-white mb-2">
+            수집 기간
+        </label>
+        <select name="date_range"
+                class="w-full px-4 py-3 rounded-md border border-gray-300 dark:border-gray-700
+                       bg-white dark:bg-gray-900 text-sm text-gray-800 dark:text-white
+                       focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="1d">1일</option>
+            <option value="3d">3일</option>
+            <option value="7d">7일</option>
+            <option value="1m">1개월</option>
+            <option value="6m">6개월</option>
+            <option value="1y">1년</option>
+            <option value="all">전체</option>
+        </select>
+    </div>
+</div>
 
     <div class="mt-4">
         <button type="submit" class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600">상품 수집 시작</button>
@@ -131,23 +167,23 @@ tr.selected-row {
     </div>
 
     <!-- 수집된 상품 리스트 -->
-    <div class="bg-white p-4 shadow-md rounded-md">
-        <h3 class="text-xl font-bold mb-4">수집된 상품 목록</h3>
+    <div class="bg-white dark:bg-gray-800 text-black dark:text-gray-200 border border-gray-200 dark:border-gray-600 p-4 rounded text-black dark:text-white">
+    <h3 class="text-lg font-bold mb-2">📦 수집된 상품 목록</h3>
 
         <!-- 상단 일괄 처리 버튼 -->
-        <div class="flex justify-between items-center mb-4 sticky top-0 bg-white z-10 p-2 border-b">
-    <div class="flex gap-2">
-        <button class="btn-new bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700">신규 등록</button>
-        <button class="btn-match bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600">기존 매칭</button>
-        <button class="btn-exclude bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600">제외 처리</button>
+        <div class="flex justify-between items-center mb-4 sticky top-0 bg-white dark:bg-gray-800 z-10 p-2 border-b border-gray-200 dark:border-gray-700">
+        <div class="flex gap-2">
+        <button class="btn-new bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 text-black dark:text-white">신규 등록</button>
+        <button class="btn-match bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600 text-black dark:text-white">기존 매칭</button>
+        <button class="btn-exclude bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 text-black dark:text-white">제외 처리</button>
     </div>
-    <div id="selectedCount" class="text-sm text-gray-600">0개 선택됨</div>
+    <div id="selectedCount" class="text-sm text-gray-600 dark:text-gray-300">0개 선택됨</div>
 </div>
         <!-- 상품 리스트 테이블 -->
         <div class="overflow-x-auto">
-        <table class="w-full min-w-fit table-auto text-sm border border-gray-200 rounded overflow-hidden">
-<thead class="bg-gray-100 text-gray-700">
-    <tr>
+        <table class="w-full table-auto text-sm border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-center">
+        <thead class="bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-white border-b border-gray-300 dark:border-white">
+        <tr >
         <th class="p-2"><input type="checkbox" id="selectAllCheckbox" onchange="toggleAllCheckboxes(this)"></th>
         <th class="p-2">이미지</th>
         <th class="p-2">상품명</th>
@@ -158,8 +194,9 @@ tr.selected-row {
         <th class="p-2">재고</th>
     </tr>
 </thead>
-<tbody id="productTableBody" class="divide-y divide-gray-100"></tbody>
-</table>
+<tbody id="productTableBody"
+               class="divide-y divide-gray-100 dark:divide-gray-700 text-gray-800 dark:text-gray-100">
+      </table>
         </div>
 
         <!-- 페이지네이션 -->
@@ -410,23 +447,33 @@ function renderTable() {
 
     pageItems.forEach(product => {
         const row = document.createElement('tr');
-        row.classList.add('cursor-pointer', 'hover:bg-gray-50');
+        row.classList.add(
+            'cursor-pointer',
+    'hover:bg-gray-50',
+    'dark:hover:bg-gray-700',
+    'dark:text-white'
+            );
 
         row.innerHTML = `
+        <tr class="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-white">
             <td class="p-2 text-center">
                 <input type="checkbox" class="productCheckbox" value="${product.id}">
             </td>
-            <td class="p-2 text-center">
-                <img src="${product.main_image_url}" class="thumbnail w-16 h-16 object-contain"
-                     onmousemove="movePreview(event, this)" onmouseout="hidePreview()">
-            </td>
-            <td class="p-2">${product.product_name}</td>
+            <td class="p-2 text-center align-middle">
+    <img src="${product.main_image_url}" class="mx-auto w-16 h-16 object-contain"
+         onmousemove="movePreview(event, this)" onmouseout="hidePreview()">
+</td>
+<td class="p-2 text-left align-middle">${product.product_name}</td>
             <td class="p-2">${product.option_name ?? '옵션없음'}</td>
             <td class="p-2">${product.product_code}</td>
             <td class="p-2 text-right">${formatPrice(product.price)}원</td>
             <td class="p-2">${product.status}</td>
             <td class="p-2">${product.stock}</td>
+
+            </tr>
         `;
+        row.className = 'hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-800 dark:text-white';
+
 
         // ✅ 클릭 시 체크박스 ON/OFF + 배경 강조
         row.addEventListener('click', (e) => {
