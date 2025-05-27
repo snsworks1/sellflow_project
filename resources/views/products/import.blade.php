@@ -26,90 +26,140 @@
   font-weight: bold !important;
   border-color: #1D4ED8 !important;
 }
+tr.selected-row {
+  background-color: #eef2ff !important; /* bg-indigo-50 */
+}
+.btn-new {
+  background-color: #2563eb !important; /* blue-600 */
+  color: white !important;
+}
+.btn-match {
+  background-color: #f59e0b !important; /* yellow-500 */
+  color: white !important;
+}
+.btn-exclude {
+  background-color: #ef4444 !important; /* red-500 */
+  color: white !important;
+}
 
+.shop-card {
+  @apply cursor-pointer p-4 border rounded-md bg-white shadow hover:shadow-md transition text-center;
+}
+.shop-card:hover {
+    @apply shadow-lg;
+}
+.shop-card.selected {
+    background-color: #dbeafe !important;  /* Tailwind bg-blue-100 */
+  border-color: #2563eb !important;      /* Tailwind blue-600 */
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3) !important;
+  transition: background-color 0.2s ease-in-out;
+}
+.shop-card.selected .checkmark {
+    display: block !important;
+}
 </style>
 
-<div class="container mx-auto p-4">
+
+
+<div class="mb-4">
+    <button id="toggleImportForm"
+        class="mb-2 px-4 py-2 text-sm bg-gray-200 hover:bg-gray-300 rounded">
+        쇼핑몰 상품 수집 열기/접기
+    </button>
+
+
+    <div id="importFormWrapper"
+     class="transition-all duration-500 ease-in-out overflow-hidden"
+     style="max-height: 0;">    <div class="container mx-auto p-4">
     <h2 class="text-2xl font-bold mb-4">쇼핑몰 상품 수집</h2>
 
-    <!-- 수집 설정 폼 (간소화) -->
-    <div class="bg-white p-4 shadow-md rounded-md mb-4">
-        <form id="importForm">
-            @csrf
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label class="block mb-1 font-medium">쇼핑몰 타입</label>
-                    <select id="shop_type" name="shop_type" class="w-full p-2 border rounded-md">
-                        <option value="Cafe24">Cafe24</option>
-                        <option value="SmartStore">SmartStore</option>
-                        <option value="Coupang">Coupang</option>
-                        <option value="ESMPlus">ESMPlus</option>
-                    </select>
+        <!-- ✅ Form 시작 -->
+<form id="importForm">
+    @csrf
 
-                    <label for="shop_account" class="block text-lg font-medium text-gray-700 mb-2">쇼핑몰 계정:</label>
-                    <select id="shop_account" name="shop_account" class="w-full p-3 border rounded-md mb-4">
-    <option value="">먼저 쇼핑몰 유형을 선택해주세요</option>
-</select>
-                </div>
-                
-                <div>
-                    <label class="block mb-1 font-medium">수집 기간</label>
-                    <select name="date_range" class="w-full p-2 border rounded-md">
-                        <option value="1d">1일</option>
-                        <option value="3d">3일</option>
-                        <option value="7d">7일</option>
-                        <option value="1m">1개월</option>
-                        <option value="6m">6개월</option>
-                        <option value="1y">1년</option>
-                        <option value="all">전체</option>
-                    </select>
-                </div>
-            </div>
-            <div class="mt-4">
-                <button type="submit" class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600">상품 수집 시작</button>
-            </div>
-        </form>
+    <!-- 쇼핑몰 선택 카드 -->
+    @if (!empty($shopTypes))
+    <div id="shopTypeCards"
+     class="grid gap-4 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 mb-4">
+    @foreach ($shopTypes as $type)
+        <div class="shop-card border rounded-md p-4 text-center cursor-pointer relative transition hover:shadow-md"
+             data-type="{{ $type }}">
+            <img src="/images/logo-{{ strtolower($type) }}.png" alt="{{ $type }}"
+                 class="h-12 mx-auto mb-2 object-contain">
+            <p class="font-semibold text-sm">{{ $type }}</p>
+            <div class="checkmark hidden absolute top-2 right-2 text-blue-500 text-xl">✔</div>
+        </div>
+    @endforeach
+</div>
+    @else
+    <p class="text-gray-500">연동된 쇼핑몰이 없습니다.</p>
+    @endif
+
+    <!-- Hidden input -->
+    <input type="hidden" name="shop_type" id="shop_type">
+
+    <!-- 계정/기간 설정 -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+            <label class="block mb-1 font-medium">쇼핑몰 계정</label>
+            <select id="shop_account" name="shop_account" class="w-full p-3 border rounded-md mb-4">
+                <option value="">먼저 쇼핑몰 유형을 선택해주세요</option>
+            </select>
+        </div>
+
+        <div>
+            <label class="block mb-1 font-medium">수집 기간</label>
+            <select name="date_range" class="w-full p-2 border rounded-md">
+                <option value="1d">1일</option>
+                <option value="3d">3일</option>
+                <option value="7d">7일</option>
+                <option value="1m">1개월</option>
+                <option value="6m">6개월</option>
+                <option value="1y">1년</option>
+                <option value="all">전체</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="mt-4">
+        <button type="submit" class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600">상품 수집 시작</button>
+    </div>
+</form>
+<!-- ✅ Form 끝 -->
+    </div>
+    </div>
     </div>
 
     <!-- 수집된 상품 리스트 -->
     <div class="bg-white p-4 shadow-md rounded-md">
         <h3 class="text-xl font-bold mb-4">수집된 상품 목록</h3>
 
-        <div class="mb-2 flex flex-wrap gap-2">
-  <button onclick="bulkMark('new')" class="px-4 py-2 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-lg shadow-md transition">선택 → 신규</button>
-  <button onclick="bulkMark('match')" class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg shadow-md transition">선택 → 매칭</button>
-  <button 
-  onclick="bulkMark('exclude')" 
-  style="background-color:#334155 !important; color:#fff !important;" 
-  class="px-4 py-2 font-semibold rounded-lg shadow-md transition">
-  선택 → 제외
-</button>
+        <!-- 상단 일괄 처리 버튼 -->
+        <div class="flex justify-between items-center mb-4 sticky top-0 bg-white z-10 p-2 border-b">
+    <div class="flex gap-2">
+        <button class="btn-new bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700">신규 등록</button>
+        <button class="btn-match bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600">기존 매칭</button>
+        <button class="btn-exclude bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600">제외 처리</button>
+    </div>
+    <div id="selectedCount" class="text-sm text-gray-600">0개 선택됨</div>
 </div>
         <!-- 상품 리스트 테이블 -->
         <div class="overflow-x-auto">
-        <table class="w-full min-w-fit table-auto bg-white border border-gray-200">
-        <thead>
-                    <tr class="bg-gray-100">
-                    <th class="p-2 border">
-                    <input type="checkbox"
-       id="selectAllCheckbox"
-       onchange="toggleAllCheckboxes(this)"
-       class="productCheckbox accent-indigo-500 w-5 h-5 rounded border-gray-300 shadow-sm hover:ring-2 hover:ring-indigo-300">
-
-                    </th>
-                        <th class="image-column">이미지</th>
-                        <th class="p-2 border">상품명</th>
-                        <th class="p-2 border">옵션</th> <!-- ✅ 옵션 추가 -->
-
-                        <th class="p-2 border">상품코드</th>
-                        <th class="p-2 border">가격</th>
-                        <th class="p-2 border">상태</th>
-                        <th class="p-2 border">재고</th>
-                        <th class="p-2 border">동작</th>
-                    </tr>
-                </thead>
-                <tbody id="productTableBody"></tbody>
-            </table>
+        <table class="w-full min-w-fit table-auto text-sm border border-gray-200 rounded overflow-hidden">
+<thead class="bg-gray-100 text-gray-700">
+    <tr>
+        <th class="p-2"><input type="checkbox" id="selectAllCheckbox" onchange="toggleAllCheckboxes(this)"></th>
+        <th class="p-2">이미지</th>
+        <th class="p-2">상품명</th>
+        <th class="p-2">옵션</th>
+        <th class="p-2">상품코드</th>
+        <th class="p-2 text-right">가격</th>
+        <th class="p-2">상태</th>
+        <th class="p-2">재고</th>
+    </tr>
+</thead>
+<tbody id="productTableBody" class="divide-y divide-gray-100"></tbody>
+</table>
         </div>
 
         <!-- 페이지네이션 -->
@@ -134,6 +184,8 @@
     </button>
   </div>
 </div>
+
+
 
 <script>
 let products = [];
@@ -358,42 +410,47 @@ function renderTable() {
 
     pageItems.forEach(product => {
         const row = document.createElement('tr');
+        row.classList.add('cursor-pointer', 'hover:bg-gray-50');
+
         row.innerHTML = `
-            <td class="p-2 border">
-  <input type="checkbox"
-         class="productCheckbox accent-indigo-500 w-5 h-5 rounded border-gray-300 shadow-sm hover:ring-2 hover:ring-indigo-300">
-</td>
-
-           <td class="image-column border p-2 text-center align-middle">
-  <div class="thumbnail-wrapper inline-block">
-    <img src="${product.main_image_url}" class="thumbnail" alt="상품 이미지"
-     onmousemove="movePreview(event, this)" onmouseout="hidePreview()" style="max-width:80px; max-height:80px;">
-  </div>
-</td>
-            <td class="p-2 border">${product.product_name}</td>
-<td class="p-2 border">${product.option_name ?? '옵션없음'}</td>
-
-            <td class="p-2 border">${product.product_code}</td>
-<td class="p-2 border">${formatPrice(product.price)}원</td>
-            <td class="p-2 border">${product.status}</td>
-            <td class="p-2 border">${product.stock}</td>
-           <td class="p-2 border">
-  <div class="flex flex-wrap gap-1">
-    <button class="min-w-[64px] px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-lg shadow-md transition-all">신규</button>
-    <button class="min-w-[64px] px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg shadow-md transition-all">매칭</button>
-<button style="background-color:#334155 !important; color:#fff !important;"
-  class="min-w-[64px] px-3 py-1.5 font-semibold rounded-md shadow-sm transition-all duration-150">
-  제외
-</button>
-  </div>
-</td>
-
+            <td class="p-2 text-center">
+                <input type="checkbox" class="productCheckbox" value="${product.id}">
+            </td>
+            <td class="p-2 text-center">
+                <img src="${product.main_image_url}" class="thumbnail w-16 h-16 object-contain"
+                     onmousemove="movePreview(event, this)" onmouseout="hidePreview()">
+            </td>
+            <td class="p-2">${product.product_name}</td>
+            <td class="p-2">${product.option_name ?? '옵션없음'}</td>
+            <td class="p-2">${product.product_code}</td>
+            <td class="p-2 text-right">${formatPrice(product.price)}원</td>
+            <td class="p-2">${product.status}</td>
+            <td class="p-2">${product.stock}</td>
         `;
+
+        // ✅ 클릭 시 체크박스 ON/OFF + 배경 강조
+        row.addEventListener('click', (e) => {
+            const checkbox = row.querySelector('.productCheckbox');
+            if (!e.target.classList.contains('productCheckbox')) {
+                checkbox.checked = !checkbox.checked;
+                toggleRowHighlight(row, checkbox.checked);
+                updateSelectedCount();
+            }
+        });
+
+        // ✅ 체크 상태에 따라 배경 유지 (초기 상태)
+        const checkbox = row.querySelector('.productCheckbox');
+        toggleRowHighlight(row, checkbox.checked);
+
         tableBody.appendChild(row);
     });
 
-    renderPagination(); // ✅ 여기 추가
-
+    renderPagination();
+    // ✅ 상품 있으면 수집 폼 접기
+    const formWrapper = document.getElementById('importFormWrapper');
+    if (products.length > 0 && formWrapper) {
+        formWrapper.style.maxHeight = '0px';
+    }
 }
 
 
@@ -469,5 +526,135 @@ function closeModal() {
     window.location.reload();
 }
 </script>
+
+
+<script> // 동작 버튼 구성
+function getCheckedProductIds() {
+    return Array.from(document.querySelectorAll('.productCheckbox:checked'))
+                .map(cb => cb.value);
+}
+
+function handleBulkAction(actionType) {
+    const ids = getCheckedProductIds();
+    if (ids.length === 0) return alert("선택된 상품이 없습니다.");
+
+    fetch('/products/bulk-action', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+        },
+        body: JSON.stringify({ action: actionType, ids })
+    })
+    .then(res => res.json())
+    .then(data => {
+        alert(data.message);
+        window.location.reload();
+    })
+    .catch(err => {
+        alert("오류 발생: " + err.message);
+    });
+}
+
+document.querySelector('.btn-new').addEventListener('click', () => handleBulkAction('new'));
+document.querySelector('.btn-match').addEventListener('click', () => handleBulkAction('match'));
+document.querySelector('.btn-exclude').addEventListener('click', () => handleBulkAction('exclude'));
+
+
+function updateSelectedCount() {
+    const count = document.querySelectorAll('.productCheckbox:checked').length;
+    document.getElementById('selectedCount').textContent = `${count}개 선택됨`;
+}
+
+function toggleAllCheckboxes(source) {
+    document.querySelectorAll('.productCheckbox').forEach(cb => {
+        cb.checked = source.checked;
+        toggleRowHighlight(cb.closest('tr'), cb.checked);
+    });
+    updateSelectedCount();
+}
+
+function toggleRowHighlight(row, selected) {
+    if (selected) {
+        row.classList.add('selected-row');
+    } else {
+        row.classList.remove('selected-row');
+    }
+
+}
+
+// 개별 체크박스 체크 시 행 강조 및 카운트 갱신
+document.addEventListener('change', (e) => {
+    if (e.target.classList.contains('productCheckbox')) {
+        toggleRowHighlight(e.target.closest('tr'), e.target.checked);
+        updateSelectedCount();
+    }
+});
+
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.shop-card').forEach(card => {
+        card.addEventListener('click', () => {
+            document.querySelectorAll('.shop-card').forEach(c => {
+                c.classList.remove('selected');
+                c.querySelector('.checkmark')?.classList.add('hidden');
+            });
+
+            card.classList.add('selected'); // ✅ 이 라인이 핵심
+            card.querySelector('.checkmark')?.classList.remove('hidden');
+            document.getElementById('shop_type').value = card.dataset.type;
+
+            fetchAccounts(); // ✅ 선택 후 계정 갱신
+        });
+    });
+});
+
+
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const formWrapper = document.getElementById('importFormWrapper');
+    const toggleBtn = document.getElementById('toggleImportForm');
+
+    if (!formWrapper || !toggleBtn) {
+        console.warn('❌ formWrapper or toggleImportForm not found.');
+        return;
+    }
+
+    let isOpen = true;
+
+    const setWrapperHeight = (expand) => {
+        formWrapper.style.maxHeight = expand ? '1000px' : '0px';
+    };
+
+    toggleBtn.addEventListener('click', () => {
+        isOpen = !isOpen;
+        setWrapperHeight(isOpen);
+    });
+
+    // ✅ 서버에서 count($products) > 0 이면 접은 상태로 시작
+    const hasProducts = {!! count($products ?? []) > 0 ? 'true' : 'false' !!};
+    if (hasProducts) {
+        isOpen = false;
+        setWrapperHeight(false);
+    } else {
+        setWrapperHeight(true);
+    }
+});
+</script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const formWrapper = document.getElementById('importFormWrapper');
+        const hasProducts = {{ count($products ?? []) > 0 ? 'true' : 'false' }};
+        
+        if (formWrapper) {
+            formWrapper.style.maxHeight = hasProducts ? '0px' : '1000px';
+        }
+    });
+</script>
+
 
 @endsection

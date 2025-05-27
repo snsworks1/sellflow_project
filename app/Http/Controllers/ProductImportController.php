@@ -26,9 +26,23 @@ class ProductImportController extends Controller
      * 쇼핑몰 상품 수집 페이지 표시
      */
     public function showImportPage()
-    {
-        return view('products.import');
-    }
+{
+    $userId = Auth::id();
+    $dbName = "sellflow_global_{$userId}";
+
+    config(['database.connections.dynamic.database' => $dbName]);
+    DB::purge('dynamic');
+
+    $shopTypes = DB::connection('dynamic')->table('shopping_mall_integrations')
+        ->select('platform')
+        ->distinct()
+        ->pluck('platform')
+        ->toArray();
+
+    return view('products.import', [
+        'shopTypes' => $shopTypes,
+    ]);
+}
 
     /**
      * 쇼핑몰 상품 수집 처리

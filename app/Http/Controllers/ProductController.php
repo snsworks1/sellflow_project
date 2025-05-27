@@ -77,4 +77,35 @@ class ProductController extends Controller
 
         return response()->json(['products' => $products]);
     }
+
+    public function bulkAction(Request $request)
+{
+    $action = $request->input('action');
+    $ids = $request->input('ids');
+
+    if (!in_array($action, ['new', 'match', 'exclude'])) {
+        return response()->json(['message' => '유효하지 않은 작업입니다.'], 400);
+    }
+
+    $products = Product::whereIn('id', $ids)->get();
+
+    foreach ($products as $product) {
+        if ($action === 'exclude') {
+            $product->status = '제외';
+        } elseif ($action === 'new') {
+            $maxCode = Product::max('master_product_code') ?? 100000;
+            $product->master_product_code = $maxCode + 1;
+        } elseif ($action === 'match') {
+            // 매칭 시엔 별도로 master_product_code를 입력받아야 합니다 (향후 개선)
+        }
+        $product->save();
+    }
+
+    return response()->json(['message' => '일괄 처리 완료']);
+}
+
+
+
+
+
 }
