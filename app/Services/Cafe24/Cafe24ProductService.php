@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\Cafe24;
 
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Http;
@@ -9,7 +9,7 @@ use App\Models\OauthIntegration;
 use Carbon\Carbon;
 
 
-class Cafe24ApiService
+class Cafe24ProductService
 {
     /**
      * 엑세스 토큰을 사용하여 API 요청을 수행합니다.

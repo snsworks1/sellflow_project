@@ -1,25 +1,27 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Api\Cafe24;
+
+use App\Http\Controllers\Controller;
 
 use Illuminate\Support\Facades\Log;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Config;
-use App\Services\Cafe24ApiService;
+use App\Services\Cafe24\Cafe24ProductService;
+
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Schema;
 
 
 
-class ProductImportController extends Controller
+class Cafe24ProductImportController extends Controller
 {
-    protected $cafe24ApiService;
+    protected $cafe24ProductService;
 
-    public function __construct(Cafe24ApiService $cafe24ApiService)
-    {
-        $this->cafe24ApiService = $cafe24ApiService;
+    public function __construct(Cafe24ProductService $cafe24ProductService) {
+        $this->cafe24ProductService = $cafe24ProductService;
     }
 
     /**

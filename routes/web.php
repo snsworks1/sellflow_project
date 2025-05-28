@@ -5,7 +5,7 @@ use App\Http\Controllers\RegisterController;
 use App\Http\Controllers\DashboardController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\IntegrationController;
-use App\Http\Controllers\ProductImportController;
+use App\Http\Controllers\Api\Cafe24\Cafe24ProductImportController;
 use App\Http\Controllers\ProductController;
 
 // 기존 web 미들웨어 그룹 안에 API 라우트를 포함
@@ -13,7 +13,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/products/get-shop-types', [ProductController::class, 'getShopTypes']);
     Route::get('/products/get-accounts', [ProductController::class, 'getShopAccounts']);
     Route::get('/api/products/get-products', [ProductController::class, 'getProducts']);
-    Route::post('/products/import', [ProductImportController::class, 'importProducts'])->name('products.import');
+    Route::post('/products/import', [Cafe24ProductImportController::class, 'importProducts'])->name('products.import');
 
 });
 
@@ -22,12 +22,12 @@ Route::get('/oauth/callback', [IntegrationController::class, 'callback'])->name(
 Route::get('/settings/integration/reauth/{id}', [IntegrationController::class, 'reauth'])->name('integration.reauth');
 
 
-Route::get('/products/import', [ProductImportController::class, 'showImportPage'])->name('products.import');
-Route::post('/products/import', [ProductImportController::class, 'importProducts'])->name('products.import.post');
-Route::get('/products/accounts', [ProductImportController::class, 'getAccounts']);
-Route::get('/products/accounts', [ProductImportController::class, 'getAccounts'])->name('products.accounts');
-Route::get('/products/get-accounts', [ProductImportController::class, 'getAccounts']);
-Route::get('/products/get-shop-types', [ProductImportController::class, 'getShopTypes']);
+Route::get('/products/import', [Cafe24ProductImportController::class, 'showImportPage'])->name('products.import');
+Route::post('/products/import', [Cafe24ProductImportController::class, 'importProducts'])->name('products.import.post');
+Route::get('/products/accounts', [Cafe24ProductImportController::class, 'getAccounts']);
+Route::get('/products/accounts', [Cafe24ProductImportController::class, 'getAccounts'])->name('products.accounts');
+Route::get('/products/get-accounts', [Cafe24ProductImportController::class, 'getAccounts']);
+Route::get('/products/get-shop-types', [Cafe24ProductImportController::class, 'getShopTypes']);
 
 Route::get('/products/collect', [IntegrationController::class, 'collectProducts'])->name('products.collect');
 
